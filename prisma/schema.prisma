@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  createdAt  DateTime @default(now())
+  introductions Introduction[]
+}
+
+model Profile {
+  id           String   @id @default(cuid())
+  name         String
+  gender       String
+  age          Int
+  area         String
+  occupation   String
+  photos       String
+  wechat       String?
+  phone        String?
+  requirement  String
+  background   String?
+  status       String   @default("pending")
+  referrerName String
+  referrerRelation String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  testAnswers  TestAnswer[]
+  introductionsGiven  Introduction[] @relation("GivenProfile")
+  introductionsReceived Introduction[] @relation("ReceivedProfile")
+}
+
+model TestQuestion {
+  id        String   @id @default(cuid())
+  title     String
+  dimension String
+  options   String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  answers   TestAnswer[]
+}
+
+model TestAnswer {
+  id         String   @id @default(cuid())
+  profileId  String
+  questionId String
+  score      Int
+  createdAt  DateTime @default(now())
+  profile    Profile  @relation(fields: [profileId], references: [id])
+  question   TestQuestion @relation(fields: [questionId], references: [id])
+}
+
+model Introduction {
+  id           String   @id @default(cuid())
+  givenById    String
+  receivedById String
+  adminId      String
+  status       String   @default("pending")
+  message      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  givenBy      Profile  @relation("GivenProfile", fields: [givenById], references: [id])
+  receivedBy   Profile  @relation("ReceivedProfile", fields: [receivedById], references: [id])
+  admin        Admin    @relation(fields: [adminId], references: [id])
+}
