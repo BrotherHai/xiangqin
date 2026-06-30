@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -24,7 +25,10 @@ export default function LoginPage() {
     if (result?.error) {
       setError("邮箱或密码错误");
     } else {
-      router.push("/admin/dashboard");
+      const res = await fetch("/api/auth/session");
+      const session = await res.json();
+      const role = session?.user?.role;
+      router.push(role === "admin" ? "/admin/dashboard" : "/dashboard");
     }
   }
 
@@ -32,7 +36,8 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">管理员登录</CardTitle>
+          <CardTitle className="text-2xl">登录</CardTitle>
+          <p className="text-sm text-gray-500">管理员或征婚用户均可登录</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -47,6 +52,9 @@ export default function LoginPage() {
             {error && <p className="text-sm text-red-500">{error}</p>}
             <Button type="submit" className="w-full">登录</Button>
           </form>
+          <p className="text-center text-sm text-gray-500 mt-4">
+            没有账号？<Link href="/register" className="text-pink-600 hover:underline">立即注册</Link>
+          </p>
         </CardContent>
       </Card>
     </div>
