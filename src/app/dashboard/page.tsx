@@ -1,91 +1,157 @@
-"use client";
-
-import { useSession, signOut } from "next-auth/react";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import type { ReactNode } from "react";
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Heart, ShieldCheck, Brain, ChevronRight } from "lucide-react";
+import { authOptions } from "@/lib/auth";
+import { getDashboardData, getUserIntroductions } from "@/lib/dashboard-data";
+import { SignOutButton } from "@/components/dashboard/sign-out-button";
+import { MyIntroductions } from "@/components/dashboard/my-introductions";
+import { ProfileHero } from "@/components/dashboard/profile-hero";
+import { ProfileProgress } from "@/components/dashboard/profile-progress";
+import { SiteHeader } from "@/components/shared/site-header";
+import { NotificationBell } from "@/components/shared/notification-bell";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
-export default function DashboardPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const [userData, setUserData] = useState<any>(null);
+export default async function DashboardPage() {
+  const session = await getServerSession(authOptions);
+  if (!session) redirect("/login");
+  if (session.user.role !== "user") redirect("/admin/dashboard");
 
-  useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-    if (status === "authenticated" && (session.user as any).role !== "user") {
-      router.push("/admin/dashboard");
-    }
-    if (status === "authenticated") {
-      fetch("/api/user/profile").then(r => r.json()).then(setUserData);
-    }
-  }, [status, router, session]);
+  const [data, intros] = await Promise.all([
+    getDashboardData(session.user.id),
+    getUserIntroductions(session.user.id),
+  ]);
 
-  if (status === "loading") return <div className="min-h-screen flex items-center justify-center">加载中...</div>;
-  if (!userData) return null;
+  const profile = data?.profile ?? null;
+  const ecr = data?.ecr ?? null;
+  const mbti = data?.mbti ?? null;
+  const userName = data?.name ?? "";
 
-  const profile = userData.profile;
-  const statusBadge = profile ? (
-    profile.status === "approved" ? <Badge>已通过</Badge>
-    : profile.status === "rejected" ? <Badge variant="destructive">已拒绝</Badge>
-    : <Badge variant="secondary">待审核</Badge>
-  ) : null;
+  const approved = profile?.status === "approved";
+  const ecrInfo = ecr ? { emoji: ecr.result.emoji, label: ecr.result.label } : null;
+  const mbtiType = mbti?.type ?? null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b px-6 py-3 flex items-center justify-between">
-        <h1 className="text-lg font-bold text-pink-600">相亲平台</h1>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500">{userData.name}</span>
-          <Button variant="outline" size="sm" onClick={() => signOut({ callbackUrl: "/" })}>退出</Button>
-        </div>
-      </header>
-      <main className="max-w-2xl mx-auto p-6 space-y-6">
+    <div className="min-h-screen bg-gradient-to-b from-accent/50 to-muted">
+      <SiteHeader>
+        <NotificationBell />
+        <span className="text-sm text-muted-foreground">{userName}</span>
+        <SignOutButton />
+      </SiteHeader>
+
+      <main className="max-w-3xl mx-auto p-4 sm:p-6 space-y-6">
         <h2 className="text-2xl font-bold">个人中心</h2>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>我的资料 {statusBadge}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {profile ? (
-              <div className="space-y-2 text-sm">
-                <p><span className="text-gray-500">姓名：</span>{profile.name}</p>
-                <p><span className="text-gray-500">性别：</span>{profile.gender}</p>
-                <p><span className="text-gray-500">年龄：</span>{profile.age}岁</p>
-                <p><span className="text-gray-500">地区：</span>{profile.area}</p>
-                <p><span className="text-gray-500">职业：</span>{profile.occupation}</p>
-                <p><span className="text-gray-500">状态：</span>{profile.status === "pending" ? "待审核" : profile.status === "approved" ? "已通过" : "已拒绝"}</p>
-              </div>
-            ) : (
-              <p className="text-gray-500 text-sm">尚未填写征婚资料</p>
-            )}
-            <div className="flex gap-2">
-              {profile ? (
-                <Button variant="outline" size="sm" onClick={() => router.push("/dashboard/profile")}>编辑资料</Button>
-              ) : (
-                <Button size="sm" onClick={() => router.push("/dashboard/profile")}>填写资料</Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <ProfileHero
+          userName={userName}
+          profile={profile}
+          ecr={ecrInfo}
+          mbtiType={mbtiType}
+        />
 
-        {profile && profile.status === "approved" && (
-          <Card>
-            <CardHeader>
-              <CardTitle>性格测试</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-500 mb-3">完成性格测试，帮助管理员更好地为你匹配</p>
-              <Link href={`/test/${profile.id}`}>
-                <Button>去做测试</Button>
-              </Link>
-            </CardContent>
-          </Card>
+        <ProfileProgress
+          hasProfile={!!profile}
+          approved={approved}
+          hasEcr={!!ecr}
+          hasMbti={!!mbti}
+        />
+
+        {/* Quick actions */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <ActionCard
+            href="/wall"
+            icon={<Heart className="size-5" />}
+            title="相亲墙"
+            description="浏览其他征婚人，遇到心动的可以申请牵线"
+            cta="逛相亲墙"
+            accent="rose"
+            className="sm:col-span-2"
+          />
+          {profile && approved && (
+            <ActionCard
+              href={`/test/${profile.id}`}
+              icon={<ShieldCheck className="size-5" />}
+              title="依恋风格测试"
+              description="完成测试，帮助管理员更好地为你匹配"
+              cta={ecr ? "重新测试" : "去做测试"}
+              accent="sky"
+            />
+          )}
+          {profile && approved && (
+            <ActionCard
+              href={`/mbti/${profile.id}`}
+              icon={<Brain className="size-5" />}
+              title="MBTI 性格测试"
+              description="了解自己的 MBTI 性格类型"
+              cta={mbti ? "重新测试" : "去做测试"}
+              accent="violet"
+            />
+          )}
+        </div>
+
+        {profile && profile.status === "rejected" && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            资料未通过审核，请修改后重新提交。
+          </div>
         )}
+
+        <MyIntroductions initialIntros={intros} />
       </main>
     </div>
+  );
+}
+
+type AccentTone = "rose" | "sky" | "violet";
+
+function ActionCard({
+  href,
+  icon,
+  title,
+  description,
+  cta,
+  accent,
+  className,
+}: {
+  href: string;
+  icon: ReactNode;
+  title: string;
+  description: string;
+  cta: string;
+  accent: AccentTone;
+  className?: string;
+}) {
+  const accentClass: Record<AccentTone, string> = {
+    rose: "bg-rose-500/10 text-rose-600",
+    sky: "bg-sky-500/10 text-sky-600",
+    violet: "bg-violet-500/10 text-violet-600",
+  };
+
+  return (
+    <Link href={href} className={cn("group block", className)}>
+      <Card className="hover:ring-primary/30 hover:shadow-md transition-all h-full">
+        <CardContent className="p-5 flex items-center gap-4 h-full">
+          <div
+            className={cn(
+              "size-11 rounded-xl flex items-center justify-center shrink-0",
+              accentClass[accent],
+            )}
+          >
+            {icon}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold">{title}</h3>
+              <ChevronRight className="size-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+            </div>
+            <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
+            <span className="text-xs font-medium text-primary mt-1.5 inline-block">
+              {cta} →
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }

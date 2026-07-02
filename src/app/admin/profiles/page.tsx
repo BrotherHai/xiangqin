@@ -2,11 +2,20 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ProfileCard } from "@/components/admin/profile-card";
+import { Pagination, PAGE_SIZE } from "@/components/shared/pagination";
 
-export default async function ProfilesPage() {
-  const profiles = await prisma.profile.findMany({
-    orderBy: { createdAt: "desc" },
-  });
+export default async function ProfilesPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+  const { page: pageStr } = await searchParams;
+  const page = Math.max(1, parseInt(pageStr || "1", 10) || 1);
+
+  const [profiles, total] = await Promise.all([
+    prisma.profile.findMany({
+      orderBy: { createdAt: "desc" },
+      take: PAGE_SIZE,
+      skip: (page - 1) * PAGE_SIZE,
+    }),
+    prisma.profile.count(),
+  ]);
 
   return (
     <div>
@@ -22,8 +31,9 @@ export default async function ProfilesPage() {
         ))}
       </div>
       {profiles.length === 0 && (
-        <p className="text-center text-gray-400 py-12">暂无资料</p>
+        <p className="text-center text-muted-foreground py-12">暂无资料</p>
       )}
+      <Pagination page={page} pageSize={PAGE_SIZE} total={total} basePath="/admin/profiles" />
     </div>
   );
 }

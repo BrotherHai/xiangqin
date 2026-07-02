@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { TestQuestionForm } from "./test-question-form";
+import type { TestQuestion, TestQuestionInput, TestQuestionOption } from "@/lib/types";
 
-export function TestQuestionList({ questions: initial }: { questions: any[] }) {
+export function TestQuestionList({ questions: initial }: { questions: TestQuestion[] }) {
   const router = useRouter();
   const [questions, setQuestions] = useState(initial);
-  const [editing, setEditing] = useState<any>(null);
+  const [editing, setEditing] = useState<TestQuestion | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   async function handleDelete(id: string) {
@@ -20,7 +21,7 @@ export function TestQuestionList({ questions: initial }: { questions: any[] }) {
     router.refresh();
   }
 
-  async function handleSave(data: any, id?: string) {
+  async function handleSave(data: TestQuestionInput, id?: string) {
     if (id) {
       await fetch(`/api/tests/${id}`, {
         method: "PUT",
@@ -55,17 +56,17 @@ export function TestQuestionList({ questions: initial }: { questions: any[] }) {
       </Dialog>
 
       {questions.map((q) => {
-        const options = JSON.parse(q.options || "[]");
+        const options: TestQuestionOption[] = JSON.parse(q.options || "[]");
         return (
           <Card key={q.id}>
             <CardContent className="p-4">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <p className="font-medium">{q.title}</p>
-                  <p className="text-sm text-gray-500 mt-1">维度: {q.dimension}</p>
+                  <p className="text-sm text-muted-foreground mt-1">维度: {q.dimension}</p>
                   <div className="flex gap-2 mt-2 flex-wrap">
-                    {options.map((o: any, i: number) => (
-                      <span key={i} className="text-xs bg-gray-100 px-2 py-1 rounded">{o.text} ({o.score}分)</span>
+                    {options.map((o, i: number) => (
+                      <span key={i} className="text-xs bg-muted px-2 py-1 rounded">{o.text} ({o.score}分)</span>
                     ))}
                   </div>
                 </div>
@@ -78,7 +79,7 @@ export function TestQuestionList({ questions: initial }: { questions: any[] }) {
           </Card>
         );
       })}
-      {questions.length === 0 && <p className="text-center text-gray-400 py-8">暂无题目</p>}
+      {questions.length === 0 && <p className="text-center text-muted-foreground py-8">暂无题目</p>}
     </div>
   );
 }

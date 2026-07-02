@@ -2,8 +2,13 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "./prisma";
 import { compare } from "bcryptjs";
+import { rateLimit, getClientIp } from "./rate-limit";
 
 export type Role = "admin" | "user";
+
+// 10 login attempts per IP per 10 minutes.
+const LOGIN_LIMIT = 10;
+const LOGIN_WINDOW = 10 * 60 * 1000;
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -13,8 +18,13 @@ export const authOptions: NextAuthOptions = {
         email: { label: "邮箱", type: "email" },
         password: { label: "密码", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) return null;
+
+        const ip = getClientIp((req?.headers ?? {}) as Record<string, string>);
+        const { ok } = rateLimit(`login:${ip}`, LOGIN_LIMIT, LOGIN_WINDOW);
+        // Rate-limited: fail without revealing the reason (brute-force block).
+        if (!ok) return null;
 
         const admin = await prisma.admin.findUnique({
           where: { email: credentials.email },
@@ -44,14 +54,14 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as any).role;
+        token.role = user.role;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = token.id;
-        (session.user as any).role = token.role;
+        if (token.id) session.user.id = token.id;
+        if (token.role) session.user.role = token.role;
       }
       return session;
     },

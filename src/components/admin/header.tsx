@@ -12,6 +12,7 @@ const navItems = [
   { href: "/admin/tests", label: "性格测试" },
   { href: "/admin/match", label: "匹配推荐" },
   { href: "/admin/introductions", label: "牵线管理" },
+  { href: "/admin/requests", label: "牵线申请" },
 ];
 
 export function Header() {
@@ -19,14 +20,21 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="bg-white border-b px-6 py-3 flex items-center justify-between lg:justify-end">
-      <button className="lg:hidden text-2xl" onClick={() => setMenuOpen(!menuOpen)}>☰</button>
+    <header className="bg-card border-b px-6 py-3 flex items-center justify-between lg:justify-end">
+      <button
+        className="lg:hidden text-2xl"
+        onClick={() => setMenuOpen(!menuOpen)}
+        aria-label="切换菜单"
+        aria-expanded={menuOpen}
+      >
+        ☰
+      </button>
       <div className="flex items-center gap-4">
-        <span className="text-sm text-gray-500">{session?.user?.name}</span>
+        <span className="text-sm text-muted-foreground">{session?.user?.name}</span>
         <Button variant="outline" size="sm" onClick={() => signOut({ callbackUrl: "/login" })}>退出</Button>
       </div>
       {menuOpen && (
-        <div className="fixed inset-0 top-16 z-50 bg-white p-6 lg:hidden">
+        <div className="fixed inset-0 top-16 z-50 bg-card p-6 lg:hidden">
           <nav className="space-y-2">
             {navItems.map((item) => (
               <Link

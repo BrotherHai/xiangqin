@@ -4,16 +4,19 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { TestQuestionInput, TestQuestionOption } from "@/lib/types";
 
-interface Option {
-  text: string;
-  score: number;
+interface InitialData {
+  title?: string;
+  dimension?: string;
+  options?: string;
+  sortOrder?: number;
 }
 
-export function TestQuestionForm({ initialData, onSave }: { initialData?: any; onSave: (data: any) => void }) {
+export function TestQuestionForm({ initialData, onSave }: { initialData?: InitialData | null; onSave: (data: TestQuestionInput) => void }) {
   const [title, setTitle] = useState(initialData?.title || "");
   const [dimension, setDimension] = useState(initialData?.dimension || "");
-  const [options, setOptions] = useState<Option[]>(
+  const [options, setOptions] = useState<TestQuestionOption[]>(
     initialData ? JSON.parse(initialData.options || "[]") : [{ text: "", score: 1 }, { text: "", score: 2 }, { text: "", score: 3 }, { text: "", score: 4 }, { text: "", score: 5 }]
   );
 
@@ -29,7 +32,7 @@ export function TestQuestionForm({ initialData, onSave }: { initialData?: any; o
         <Input value={title} onChange={e => setTitle(e.target.value)} required />
       </div>
       <div className="space-y-2">
-        <Label>维度标签（如：外向、理性、感性、细心）</Label>
+        <Label>维度标签（ECR-36 使用“回避”或“焦虑”，与评分一致才能正确计分）</Label>
         <Input value={dimension} onChange={e => setDimension(e.target.value)} required />
       </div>
       <div className="space-y-2">

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,17 +14,19 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setLoading(true);
     const result = await signIn("credentials", {
       email,
       password,
       redirect: false,
     });
     if (result?.error) {
-      setError("邮箱或密码错误");
+      toast.error("邮箱或密码错误");
+      setLoading(false);
     } else {
       const res = await fetch("/api/auth/session");
       const session = await res.json();
@@ -33,11 +36,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-muted px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">登录</CardTitle>
-          <p className="text-sm text-gray-500">管理员或征婚用户均可登录</p>
+          <p className="text-sm text-muted-foreground">管理员或征婚用户均可登录</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -49,12 +52,14 @@ export default function LoginPage() {
               <Label htmlFor="password">密码</Label>
               <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
             </div>
-            {error && <p className="text-sm text-red-500">{error}</p>}
-            <Button type="submit" className="w-full">登录</Button>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "登录中…" : "登录"}
+            </Button>
           </form>
-          <p className="text-center text-sm text-gray-500 mt-4">
-            没有账号？<Link href="/register" className="text-pink-600 hover:underline">立即注册</Link>
-          </p>
+          <div className="flex items-center justify-between text-sm text-muted-foreground mt-4">
+            <span>没有账号？<Link href="/register" className="text-primary hover:underline">立即注册</Link></span>
+            <Link href="/forgot-password" className="text-primary hover:underline">忘记密码？</Link>
+          </div>
         </CardContent>
       </Card>
     </div>

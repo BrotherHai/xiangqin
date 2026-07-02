@@ -7,9 +7,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ImageUploader } from "@/components/image-uploader";
+import { AreaCascader } from "@/components/area-cascader";
+
+interface ProfileFormInitialData {
+  name?: string;
+  gender?: string;
+  age?: number;
+  area?: string;
+  occupation?: string;
+  wechat?: string | null;
+  phone?: string | null;
+  requirement?: string;
+  background?: string | null;
+  photos?: string;
+  expectMinAge?: number | null;
+  expectMaxAge?: number | null;
+  expectArea?: string | null;
+}
 
 interface ProfileFormProps {
-  initialData?: any;
+  initialData?: ProfileFormInitialData;
   profileId?: string;
 }
 
@@ -25,9 +43,10 @@ export function ProfileForm({ initialData, profileId }: ProfileFormProps) {
     phone: initialData?.phone || "",
     requirement: initialData?.requirement || "",
     background: initialData?.background || "",
-    referrerName: initialData?.referrerName || "",
-    referrerRelation: initialData?.referrerRelation || "",
-    photos: initialData ? JSON.parse(initialData.photos || "[]").join(", ") : "",
+    photos: initialData ? JSON.parse(initialData.photos || "[]") : ([] as string[]),
+    expectMinAge: initialData?.expectMinAge != null ? String(initialData.expectMinAge) : "",
+    expectMaxAge: initialData?.expectMaxAge != null ? String(initialData.expectMaxAge) : "",
+    expectArea: initialData?.expectArea || "",
   });
 
   async function handleSubmit(e: React.FormEvent) {
@@ -40,7 +59,10 @@ export function ProfileForm({ initialData, profileId }: ProfileFormProps) {
       body: JSON.stringify({
         ...form,
         age: parseInt(form.age),
-        photos: form.photos.split(",").map((s: string) => s.trim()).filter(Boolean),
+        photos: form.photos,
+        expectMinAge: form.expectMinAge ? parseInt(form.expectMinAge, 10) : null,
+        expectMaxAge: form.expectMaxAge ? parseInt(form.expectMaxAge, 10) : null,
+        expectArea: form.expectArea || null,
       }),
     });
     if (res.ok) {
@@ -73,7 +95,7 @@ export function ProfileForm({ initialData, profileId }: ProfileFormProps) {
           </div>
           <div className="space-y-2">
             <Label>地区</Label>
-            <Input value={form.area} onChange={e => setForm({ ...form, area: e.target.value })} required />
+            <AreaCascader value={form.area} onChange={(v) => setForm({ ...form, area: v })} />
           </div>
           <div className="space-y-2">
             <Label>职业</Label>
@@ -87,24 +109,38 @@ export function ProfileForm({ initialData, profileId }: ProfileFormProps) {
             <Label>手机号</Label>
             <Input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
           </div>
-          <div className="space-y-2">
-            <Label>照片URL（逗号分隔）</Label>
-            <Input value={form.photos} onChange={e => setForm({ ...form, photos: e.target.value })} />
-          </div>
-          <div className="space-y-2">
-            <Label>推荐人姓名</Label>
-            <Input value={form.referrerName} onChange={e => setForm({ ...form, referrerName: e.target.value })} required />
-          </div>
-          <div className="space-y-2">
-            <Label>与征婚人关系</Label>
-            <Input value={form.referrerRelation} onChange={e => setForm({ ...form, referrerRelation: e.target.value })} required />
+          <div className="space-y-2 md:col-span-2">
+            <Label>照片（最多 6 张）</Label>
+            <ImageUploader value={form.photos} onChange={(urls) => setForm({ ...form, photos: urls })} />
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label>基本情况介绍</Label>
             <Textarea value={form.background} onChange={e => setForm({ ...form, background: e.target.value })} />
           </div>
           <div className="space-y-2 md:col-span-2">
-            <Label>择偶要求</Label>
+            <Label>择偶期望（用于智能匹配，留空表示不限）</Label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <Input
+                type="number"
+                placeholder="最小年龄"
+                value={form.expectMinAge}
+                onChange={e => setForm({ ...form, expectMinAge: e.target.value })}
+              />
+              <Input
+                type="number"
+                placeholder="最大年龄"
+                value={form.expectMaxAge}
+                onChange={e => setForm({ ...form, expectMaxAge: e.target.value })}
+              />
+              <Input
+                placeholder="期望地区（如：北京）"
+                value={form.expectArea}
+                onChange={e => setForm({ ...form, expectArea: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>其他要求</Label>
             <Textarea value={form.requirement} onChange={e => setForm({ ...form, requirement: e.target.value })} required />
           </div>
           <div className="md:col-span-2 flex gap-2">

@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
+import { assertCsrf } from "@/lib/csrf";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth-guards";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const csrfError = assertCsrf(req); if (csrfError) return csrfError;
+  const { error } = await requireAdmin();
+  if (error) return error;
   const { id } = await params;
   const body = await req.json();
   const question = await prisma.testQuestion.update({
@@ -17,6 +22,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const csrfError = assertCsrf(req); if (csrfError) return csrfError;
+  const { error } = await requireAdmin();
+  if (error) return error;
   const { id } = await params;
   await prisma.testQuestion.delete({ where: { id } });
   return NextResponse.json({ success: true });

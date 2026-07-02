@@ -13,6 +13,7 @@ model Admin {
   password  String
   createdAt DateTime @default(now())
   introductions Introduction[]
+  matchRequests MatchRequest[]
 }
 
 model User {
@@ -23,6 +24,39 @@ model User {
   phone     String?
   createdAt DateTime @default(now())
   profile   Profile?
+  notifications Notification[]
+}
+
+/// In-app notifications delivered to a user (e.g. new introduction,
+/// profile approved, match request decision). Purely additive —
+/// created by server-side business logic, never written by the client.
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  body      String
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([createdAt])
+}
+
+/// Single-use tokens for the password-reset flow. A token is issued by
+/// /api/auth/forgot-password and consumed by /api/auth/reset-password.
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
 }
 
 model Profile {
@@ -38,15 +72,24 @@ model Profile {
   phone        String?
   requirement  String
   background   String?
+  expectMinAge Int?
+  expectMaxAge Int?
+  expectArea   String?
   status       String   @default("pending")
-  referrerName String
-  referrerRelation String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   user         User?    @relation(fields: [userId], references: [id])
   testAnswers  TestAnswer[]
+  mbtiResult    MbtiResult?
   introductionsGiven  Introduction[] @relation("GivenProfile")
   introductionsReceived Introduction[] @relation("ReceivedProfile")
+  matchRequestsAsApplicant MatchRequest[] @relation("MatchRequestApplicant")
+  matchRequestsAsTarget    MatchRequest[] @relation("MatchRequestTarget")
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([gender, age])
+  @@index([area])
 }
 
 model TestQuestion {
@@ -57,6 +100,8 @@ model TestQuestion {
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
   answers   TestAnswer[]
+
+  @@index([sortOrder])
 }
 
 model TestAnswer {
@@ -67,6 +112,20 @@ model TestAnswer {
   createdAt  DateTime @default(now())
   profile    Profile  @relation(fields: [profileId], references: [id])
   question   TestQuestion @relation(fields: [questionId], references: [id])
+
+  @@index([profileId])
+  @@index([questionId])
+}
+
+model MbtiResult {
+  id        String   @id @default(cuid())
+  profileId String   @unique
+  type      String
+  scores    String
+  answers   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  profile   Profile  @relation(fields: [profileId], references: [id])
 }
 
 model Introduction {
@@ -75,10 +134,35 @@ model Introduction {
   receivedById String
   adminId      String
   status       String   @default("pending")
+  givenByStatus     String   @default("pending")
+  receivedByStatus  String   @default("pending")
   message      String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   givenBy      Profile  @relation("GivenProfile", fields: [givenById], references: [id])
   receivedBy   Profile  @relation("ReceivedProfile", fields: [receivedById], references: [id])
   admin        Admin    @relation(fields: [adminId], references: [id])
+
+  @@index([givenById])
+  @@index([receivedById])
+  @@index([adminId])
+  @@index([status, createdAt])
+}
+
+model MatchRequest {
+  id           String   @id @default(cuid())
+  applicantId  String
+  targetId     String
+  message      String?
+  status       String   @default("pending")
+  adminId      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  applicant    Profile  @relation("MatchRequestApplicant", fields: [applicantId], references: [id])
+  target       Profile  @relation("MatchRequestTarget", fields: [targetId], references: [id])
+  admin        Admin?   @relation(fields: [adminId], references: [id])
+
+  @@index([applicantId])
+  @@index([targetId])
+  @@index([status, createdAt])
 }

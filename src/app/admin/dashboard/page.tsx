@@ -20,8 +20,8 @@ export default async function DashboardPage() {
       <h2 className="text-2xl font-bold mb-6">仪表盘</h2>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((s) => (
-          <div key={s.label} className="bg-white rounded-xl p-6 shadow-sm border">
-            <p className="text-sm text-gray-500">{s.label}</p>
+          <div key={s.label} className="bg-card rounded-xl p-6 shadow-sm border">
+            <p className="text-sm text-muted-foreground">{s.label}</p>
             <p className="text-3xl font-bold mt-1">{s.value}</p>
           </div>
         ))}
