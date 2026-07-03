@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/prisma";
 
+// 仪表盘统计必须实时反映数据库状态，强制动态渲染，避免构建时把空库的 0 固化进静态产物。
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const [total, pending, approved, introductions] = await Promise.all([
     prisma.profile.count(),
